@@ -2,7 +2,7 @@
  * Date Created:    June 25th, 2023
  * Last Modified:   July 4th, 2023
  * Filename:        heart_rate_detection.ino
- * Purpose:         Detect heart rate using the MAX30105 sensor and display it on an OLED display.
+ * Purpose:         Detect heart rate using the MAX30102 sensor and display it on an OLED display.
  * Microcontroller: DOIT ESP32 DEVKIT V1 (30 Pin)
  * Connections:     - Button:         D23
  *                  - OLED Display:   SDA (D21) / SCL (D22)   -- Note: Address is set to be 0x3C, change in definition if necessary.
