@@ -6,7 +6,7 @@
  * Microcontroller: DOIT ESP32 DEVKIT V1 (30 Pin)
  * Connections:     - Button:         D23
  *                  - OLED Display:   SDA (D21) / SCL (D22)   -- Note: Address is set to be 0x3C, change in definition if necessary.
- *                  - MAX30105:       SDA (D21) / SCL (D22)
+ *                  - MAX30102:       SDA (D21) / SCL (D22)   -- Note: The MAX30102 shares the same library as MAX3010X.
  * Notes:           If flashing fails, try pressing BOOT Button during upload. Once flash succeeds, press reset button to restart the microcontroller.
  */
 
@@ -28,8 +28,8 @@
   #define UNDEF         -1    // Custom undefined definition
   Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// Declaration for the MAX30105 Sensor
-  MAX30105 rateSensor;      // Declare heart rate sensor
+// Declaration for the MAX30102 Sensor
+  MAX30105 rateSensor;      // Declare heart rate sensor (The sensor used is MAX30102, but library is shared for MAX3010X)
   const byte RATE_SIZE = 5; // Increase this for more averaging
   byte rates[RATE_SIZE];    // Array of heart rates, used for heart rate averaging
   byte rate_index = 0;      // Current index location in the heart rates array
