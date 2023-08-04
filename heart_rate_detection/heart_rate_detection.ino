@@ -2,11 +2,11 @@
  * Date Created:    June 25th, 2023
  * Last Modified:   July 4th, 2023
  * Filename:        heart_rate_detection.ino
- * Purpose:         Detect heart rate using the MAX30105 sensor and display it on an OLED display.
- * Microcontroller: DOIT ESP32 DEVKIT V1 (30 Pin)
+ * Purpose:         Detect heart rate using the MAX30102 sensor and display it on an OLED display.
+ * Microcontroller: ESP32 DEVKIT (30 Pin)
  * Connections:     - Button:         D23
  *                  - OLED Display:   SDA (D21) / SCL (D22)   -- Note: Address is set to be 0x3C, change in definition if necessary.
- *                  - MAX30105:       SDA (D21) / SCL (D22)
+ *                  - MAX30102:       SDA (D21) / SCL (D22)   -- Note: The MAX30102 shares the same library as MAX3010X.
  * Notes:           If flashing fails, try pressing BOOT Button during upload. Once flash succeeds, press reset button to restart the microcontroller.
  */
 
@@ -28,8 +28,8 @@
   #define UNDEF         -1    // Custom undefined definition
   Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// Declaration for the MAX30105 Sensor
-  MAX30105 rateSensor;      // Declare heart rate sensor
+// Declaration for the MAX30102 Sensor
+  MAX30105 rateSensor;      // Declare heart rate sensor (The sensor used is MAX30102, but library is shared for MAX3010X)
   const byte RATE_SIZE = 5; // Increase this for more averaging
   byte rates[RATE_SIZE];    // Array of heart rates, used for heart rate averaging
   byte rate_index = 0;      // Current index location in the heart rates array
@@ -37,6 +37,13 @@
   float instant_bpm;        // Instant calculation of heart rate
   int avg_bpm;              // Averaged calculation of heart rate
   bool zeros = true;        // True if the array has not filled up
+
+//
+static const unsigned char PROGMEM small_heart []
+=
+{ 0x03, 0xC0, 0xF0, 0x06, 0x71, 0x8C, 0x0C, 0x1B, 0x06, 0x18, 0x0E, 0x02, 0x10, 0x0, 0x03, 0x10, 0x04, 0x01, 0x10, 0x04, 0x01, 0x10, 0x40, 0x01, 0x10, 0x40, 0x01, 0x10, 0xC0, 0x03, 0x08, 0x88, 0x02, 0x08, 0xB8, 0x04, 0xFF, 0x37, 0x08, 0x01, 0x30, 0x18, 0x01, 0x90, 0x30, 0x00, 0xc0, 0x60, 0x00, 0x60, 0xC0, 0x00, 0x31, 0x80, 0x00, 0x1B, 0x00, 0x00, 0x0, 0x00, 0x00, 0x04, 0x00, };
+static const unsigned char PROGMEM big_heart[]
+{ 0x01, 0xF0, 0x0F, 0x80, 0x06, 0x1C, 0x38, 0x60, 0x18, 0x06, 0x60, 0x18, 0x10, 0x01, 0x80, 0x08, 0x20, 0x01, 0x80, 0x04, 0x40, 0x00, 0x00, 0x02, 0x40, 0x00, 0x00, 0x02, 0xC0, 0x00, 0x08, 0x03, 0x80, 0x00, 0x08, 0x01, 0x80, 0x00, 0x18, 0x01, 0x80, 0x00, 0x1C, 0x01, 0x80, 0x00, 0x14, 0x00, 0x80, 0x00, 0x14, 0x00, 0x80, 0x00, 0x14, 0x00, 0x40, 0x10, 0x12, 0x00, 0x40, 0x10, 0x12, 0x00, 0x7E, 0x1F, 0x23, 0xFE, 0x03, 0x31, 0xA0, 0x04, 0x01, 0xA0, 0xA0, 0x0C, 0x00, 0xA0, 0x0, 0x08, 0x00, 0x60, 0xE0, 0x10, 0x00, 0x20, 0x60, 0x20, 0x06, 0x00, 0x40, 0x60, 0x03, 0x00, 0x40, 0xC0, 0x01, 0x80, 0x01, 0x80, 0x00, 0xC0, 0x03, 0x00, 0x00, 0x60, 0x06, 0x00, 0x00, 0x30, 0x0, 0x00, 0x00, 0x08, 0x10, 0x00, 0x00, 0x06, 0x60, 0x00, 0x00, 0x03, 0xC0, 0x00, 0x00, 0x01, 0x80, 0x00 };
 
 // Function declaration
   void resetVariables();
@@ -85,6 +92,7 @@ void loop() {
   displayText(true, "IDLE...", 2, 0, 0);
   displayText();
   displayText(false, "Press button to start");
+  display.display();
 
   // User to push button.
   while(digitalRead(BUTTON) == LOW);
@@ -134,6 +142,10 @@ void loop() {
 
     display.clearDisplay();
     
+    // Turn off the LED after 200 ms has expired since the last heart beat.
+    if (lastBeat + 200 <= millis()) {
+      digitalWrite(LED_BUILTIN, LOW);
+    }
     // If a finger is not detected, show information to put finger on the sensor or exit the measurement.
     // If a finger is detected, show the current IR measurement and averaged heart rate information.
     if (ir < 50000) {
@@ -143,6 +155,14 @@ void loop() {
       resetVariables();
     }
     else {
+      // Show heart beat image along side the blue led. After 200 ms expires, show the small heart.
+      if (lastBeat + 200 <= millis()) {
+        display.drawBitmap(95, 17, small_heart, 24, 21, WHITE); 
+      }
+      else {
+        display.drawBitmap(90, 12, big_heart, 32, 32, WHITE); 
+      }
+
       // Display IR reading
       displayText(true, "IR: ", 2, 0, 0, false);
       displayNum(ir);
@@ -160,11 +180,6 @@ void loop() {
       //Display information about the blue LED flash indicator.
       displayText();
       displayText(false, "Each blue LED flash indicates the detection of one heart beat.");
-    }
-
-    // Turn off the LED after 200 ms has expired since the last heart beat.
-    if (lastBeat + 200 <= millis()) {
-      digitalWrite(LED_BUILTIN, LOW);
     }
   }
   
